@@ -1,6 +1,7 @@
 import os, requests, time
 
 try:
+  os.system('clear')
   os.system('pip3 install proxyscrape')
   from proxyscrape import create_collector, get_collector
   os.system('sudo service tor start')
@@ -17,10 +18,13 @@ def add_data(data, path_config, mode):
   with open(path_config, mode) as proxychains_config: 
     proxychains_config.write(data)
 
-def check_ping(proxy_list, lenght, packages=3):
+def check_ping(proxy_list, lenght, ping, packages=3):
   filtered_proxies = []
-  count = 0
+  count, counted = 0, 0
+  ping = int(ping)
   for i in proxy_list:
+    if counted == lenght:
+      break
     if count <= lenght:
       try:
         l = list(i)
@@ -29,16 +33,29 @@ def check_ping(proxy_list, lenght, packages=3):
         average_ping = float(average_ping.split('/')[4])
         if anonymous == True:
           if Type != 'https' and Type != 'http':
-            if average_ping <= 200:
+            if average_ping <= ping:
               count += 1
+              counted += 1
               print(f'{count}.| host:port {host}:{port} | country: {country} | type: {Type} | anonymous: {anonymous} | ping: {average_ping}')
               filtered_proxies.append([Type, host, port])
       except:
         print(False)
+        counted += 1
         pass
     else:
       break
+    
   return filtered_proxies
+
+def display_logo():
+  print('''
+  ██████╗        ██████╗██╗  ██╗ █████╗ ██╗███╗   ██╗███████╗
+  ██╔══██╗      ██╔════╝██║  ██║██╔══██╗██║████╗  ██║██╔════╝
+  ██████╔╝█████╗██║     ███████║███████║██║██╔██╗ ██║███████╗
+  ██╔═══╝ ╚════╝██║     ██╔══██║██╔══██║██║██║╚██╗██║╚════██║
+  ██║           ╚██████╗██║  ██║██║  ██║██║██║ ╚████║███████║
+  ╚═╝            ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝╚══════╝ By y4rd13                                                                                               
+  ''')
 
 ####BODY#####
 
@@ -52,22 +69,23 @@ collector = create_collector('my-collector', ['socks4', 'socks5']) # Proxy(host=
 proxies = collector.get_proxies({'anonymous':True})
 
 # Options
-print('\n\t@@@## C H E C K I N G--P R O X Y--L I S T: ##@@@\n')
+display_logo()
 print(f'\t- Lenght: {len(proxies)}')
-print('\tInput the lenght of the list and set the packages per ping (recommended between 1-7). Every package will be sent with an interval of 1 sec.')
-print('\tE.g.: LENGHT PACKAGES')
-print('\t       120      3')
+print('\tInput the lenght of the list and set the packages per ping (recommended between 1-7). Every package will be sent with an interval of 1 sec. Finally put the max. ping (ms) of each proxy')
+print('\tE.g.: LENGHT PACKAGES PING')
+print('\t       120      3      80')
 check = False
 while check == False:
-  lenght, pcks = input('\n\t> ').split(' ')
+  lenght, pcks, ping = input('\n\t> ').split(' ')
   if lenght.isnumeric() == True:
-    if pcks.isnumeric() == True:
-      check = True
+    if int(lenght )<= len(proxies):
+      if pcks.isnumeric() == True and ping.isnumeric():
+        check = True
   else:
     print('\tYou must input lenght and packages. E.g.: 100 1')
 
 # Check ping and anonymous state from list
-proxy_list = check_ping(proxy_list=proxies, lenght=int(lenght), packages=pcks)
+proxy_list = check_ping(proxy_list=proxies, lenght=int(lenght), ping=ping, packages=pcks)
 
 # Create a check_point
 check_point = '# Proxy_list:'
@@ -82,7 +100,7 @@ with open(path_config, 'a+') as f:
 for i in proxy_list:
   data = (' '.join(i) + '\n')
   add_data(data=data, path_config=path_config, mode='a')
-
+  add_data(data=data, path_config='pchains_list.txt', mode='a')
 print('\n')
 os.system('proxychains curl ifconfig.me/ip')
 print('\nSuccessfully completed.')
